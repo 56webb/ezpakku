@@ -1,12 +1,14 @@
-# 打包清單
+# EZpakku
 
-手機優先的旅程打包清單線框。產品規格與尚未定案的規則在 `DESIGN.md`。
+手機優先的旅行打包清單。
+
+- GitHub：https://github.com/56webb/ezpakku
+- 網站：https://ezpakku.vercel.app
+- 產品規格：`DESIGN.md`
 
 ```bash
 npm install
 npm run dev
 ```
 
-打開後用「旅人甲／旅人乙」兩個示範身份走流程。清單存在這台瀏覽器。
-
-雲端同步要另備 Supabase 專案，把網址與 publishable key 填進 `.env.local`（欄位見 `.env.example`）。資料表在 `supabase/migrations`。
+本機可用示範身份「旅人甲／旅人乙」。雲端變數見 `.env.example`；正式 Google 登入步驟見 `GOOGLE-OAUTH.md`。
