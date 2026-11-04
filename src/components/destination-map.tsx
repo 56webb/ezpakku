@@ -28,7 +28,10 @@ export function DestinationMap({ onPick }: { onPick: (country: string, city: str
   const containerRef = useRef<HTMLDivElement>(null);
   const onPickRef = useRef(onPick);
   const [loadError, setLoadError] = useState("");
-  onPickRef.current = onPick;
+
+  useEffect(() => {
+    onPickRef.current = onPick;
+  }, [onPick]);
 
   useEffect(() => {
     const container = containerRef.current;

@@ -13,11 +13,16 @@
 
 ## 接著做（順序）
 
-1. **測試 + CI（M5）** — Vitest（規則引擎、欄位／點數／天數）+ GitHub Actions（lint／tsc／test／build）
-2. **雲端同步策略（M1）** — 先寫設計（合併、衝突、離線），確認後再實作；接寫入前 RLS 已就緒
+1. ~~**測試 + CI（M5）**~~ — Vitest + `.github/workflows/ci.yml`（lint／tsc／test／build）已上
+2. **雲端同步策略（M1）** — 設計見 `docs/SYNC.md`；**等確認兩點後再實作**
 3. **`/rymin` 管理員鎖（M2）** — 跟雲端 catalog 一起：伺服器查 `is_admin`、`noindex`
 4. **上線前** — SEO／robots／sitemap（L3）、換掉 example 導購（L5）
 5. **有空再做** — 大檔拆分（L1）、SSR 介紹頁（L2）、抽字串準備 i18n（L4）；M3／M4／L6／L7 順手
+
+## 已完成（續）
+
+- M5：`npm test`（domain 欄位／點數／天數／出發日；規則引擎護照／國內外／海島／minDays／托運警告）+ CI
+- M1 設計稿：`docs/SYNC.md`（尚未寫同步程式）
 
 ## 協作
 
