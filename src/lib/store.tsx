@@ -33,9 +33,17 @@ import {
 } from "@/lib/browser-state";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { touchJourneyUpdatedAt } from "@/lib/sync/bundle";
-import { flushOutbox, pullCloudIntoState, pushJourneyBundle } from "@/lib/sync/cloud";
+import {
+  createJourneyOnCloud,
+  deleteJourneyOnCloud,
+  flushOutbox,
+  grantPointsOnCloud,
+  pullCloudIntoState,
+  pushJourneyBundle,
+} from "@/lib/sync/cloud";
 import { getLockSnapshot } from "@/lib/sync/lock-store";
-import { enqueueJourneySync } from "@/lib/sync/outbox";
+import { enqueueJourneySync, listOutbox, removeOutboxJourney } from "@/lib/sync/outbox";
+import { setSyncNotice } from "@/lib/sync/status";
 import type { AppState, NewJourneyInput, Result, SharePermission, User } from "@/lib/types";
 
 type StoreValue = {
@@ -146,7 +154,9 @@ function guardEditLock(journeyId: string): string | null {
 }
 
 function scheduleJourneyPush(journeyId: string) {
+  if (!isSupabaseConfigured()) return;
   enqueueJourneySync(journeyId);
+  setSyncNotice({ kind: "syncing", message: "同步中…" });
   void (async () => {
     const current = getAppSnapshot();
     if (!current) return;
@@ -155,10 +165,56 @@ function scheduleJourneyPush(journeyId: string) {
       if (result.updatedAt) {
         updateAppState((state) => touchJourneyUpdatedAt(state, journeyId, result.updatedAt));
       }
-      const { removeOutboxJourney } = await import("@/lib/sync/outbox");
       removeOutboxJourney(journeyId);
+      const pending = listOutbox().length;
+      setSyncNotice(
+        pending
+          ? { kind: "pending", message: `還有 ${pending} 筆待同步` }
+          : { kind: "ok", message: "已同步到雲端" },
+      );
+      return;
     }
+    if (result.conflict) {
+      removeOutboxJourney(journeyId);
+      setSyncNotice({ kind: "conflict", message: "雲端有較新版本，已改以雲端為準" });
+      const latest = getAppSnapshot();
+      const userId = latest?.sessionUserId;
+      if (latest && userId) {
+        const merged = await pullCloudIntoState(latest, userId);
+        updateAppState(() => merged);
+      }
+      return;
+    }
+    setSyncNotice({ kind: "pending", message: result.reason ?? "稍後會再試著同步" });
   })();
+}
+
+async function uploadNewJourney(localId: string) {
+  if (!isSupabaseConfigured()) return localId;
+  setSyncNotice({ kind: "syncing", message: "上傳新清單…" });
+  const current = getAppSnapshot();
+  if (!current) return localId;
+  const created = await createJourneyOnCloud(current, localId);
+  if (!created.ok) {
+    setSyncNotice({ kind: "error", message: created.reason });
+    return localId;
+  }
+  const userId = current.sessionUserId;
+  if (userId) {
+    // 清掉本機這份，改拉雲端（id／包包 id 以雲為準）
+    updateAppState((state) => ({
+      ...state,
+      journeys: state.journeys.filter((journey) => journey.id !== localId),
+      bags: state.bags.filter((bag) => bag.journeyId !== localId),
+      journeyItems: state.journeyItems.filter((item) => item.journeyId !== localId),
+      journeyCategories: state.journeyCategories.filter((row) => row.journeyId !== localId),
+    }));
+    const after = getAppSnapshot() ?? current;
+    const merged = await pullCloudIntoState(after, userId);
+    updateAppState(() => merged);
+  }
+  setSyncNotice({ kind: "ok", message: "新清單已上雲" });
+  return created.cloudId;
 }
 
 function createStoreValue(state: AppState): StoreValue {
@@ -219,17 +275,66 @@ function createStoreValue(state: AppState): StoreValue {
     },
     grantDemoPoints: () => {
       if (!user) return;
+      if (isSupabaseConfigured() && !user.id.startsWith("demo-")) {
+        void grantPointsOnCloud(POINTS_PER_SLOT).then(async (result) => {
+          if (!result.ok) {
+            setSyncNotice({ kind: "error", message: result.reason ?? "加點失敗" });
+            return;
+          }
+          const current = getAppSnapshot();
+          if (!current) return;
+          const merged = await pullCloudIntoState(current, user.id);
+          updateAppState(() => merged);
+          setSyncNotice({ kind: "ok", message: `已加 ${POINTS_PER_SLOT} 點` });
+        });
+        return;
+      }
       updateAppState((current) => grantPoints(current, user.id, POINTS_PER_SLOT));
     },
-    buySlot: () => apply(user?.id ?? null, (current, userId) => buySlot(current, userId)),
+    buySlot: () => {
+      const result = apply(user?.id ?? null, (current, userId) => buySlot(current, userId));
+      if (result.ok && user && isSupabaseConfigured() && !user.id.startsWith("demo-")) {
+        void (async () => {
+          const { createClient } = await import("@/lib/supabase/client");
+          const supabase = createClient();
+          const { error } = await supabase.rpc("buy_slot");
+          if (error) {
+            setSyncNotice({ kind: "error", message: error.message });
+            return;
+          }
+          const current = getAppSnapshot();
+          if (!current) return;
+          const merged = await pullCloudIntoState(current, user.id);
+          updateAppState(() => merged);
+        })();
+      }
+      return result;
+    },
     resetDemo: () => {
       clearDraft();
       updateAppState(() => createInitialState());
     },
-    commit: (input) => apply(user?.id ?? null, (current, userId) => commitJourney(current, userId, input)),
-    copy: (journeyId, startDate, token) =>
-      apply(user?.id ?? null, (current, userId) => copyJourney(current, userId, journeyId, startDate, token)),
-    remove: (journeyId) => apply(user?.id ?? null, (current, userId) => deleteJourney(current, userId, journeyId)),
+    commit: (input) => {
+      const result = apply(user?.id ?? null, (current, userId) => commitJourney(current, userId, input));
+      if (result.ok) void uploadNewJourney(result.id);
+      return result;
+    },
+    copy: (journeyId, startDate, token) => {
+      const result = apply(user?.id ?? null, (current, userId) =>
+        copyJourney(current, userId, journeyId, startDate, token),
+      );
+      if (result.ok) void uploadNewJourney(result.id);
+      return result;
+    },
+    remove: (journeyId) => {
+      const result = apply(user?.id ?? null, (current, userId) => deleteJourney(current, userId, journeyId));
+      if (result.ok && isSupabaseConfigured() && !journeyId.startsWith("demo-")) {
+        void deleteJourneyOnCloud(journeyId).then((deleted) => {
+          if (!deleted.ok) setSyncNotice({ kind: "error", message: deleted.reason ?? "雲端刪除失敗" });
+        });
+      }
+      return result;
+    },
     updateMeta: (journeyId, patch) =>
       applyJourneyMutation(user?.id ?? null, journeyId, (current, userId) =>
         updateJourneyMeta(current, userId, journeyId, patch),

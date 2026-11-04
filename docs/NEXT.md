@@ -1,29 +1,31 @@
 # 接下來做什麼
 
-依 L 架構健檢（`review/l-architecture`／`docs/L-REVIEW.md`，**不進 main**）與 Agent 裁決。技術棧以 **Next.js 16 + React 19** 為準，不是 Astro。資料目前在瀏覽器 `localStorage`；Supabase 先管登入與 schema。
+依 L 架構健檢與 Agent 裁決。技術棧：**Next.js 16 + React 19**。
 
-## 已做
+## 已完成
 
-- Catalog 後台入口 `/rymin`（本機草稿）
-- Catalog schema migration、本機 catalog store
-- **H1–H3 分享 RLS 修復** → `supabase/migrations/20261104070000_fix_share_rls.sql`
-  - H1：`set_share_permission` 變數改 `v_share_id`，改唯讀不再炸／誤刪全表
-  - H2：`can_view`；開連結無論唯讀／可編都進 `share_members`；SELECT 用 `can_view`，寫入仍用 `can_edit`
-  - H3：journeys 只允許改名稱／地點／目的／天數／日期；trigger 擋改 `user_id`／`mode`
+- Catalog `/rymin`（本機；有 Supabase 時需 `is_admin`，`noindex`）
+- H1–H3 分享 RLS + journey sync 鎖／upsert（已套雲端）
+- M5 Vitest + CI
+- M1 骨架＋尾巴：新建／複製上雲、刪除上雲、衝突 pull、同步狀態列、outbox
+- M2：`/rymin` 伺服器 `is_admin` + catalog 雲端讀（失敗 fallback 本機）
+- M3：`grant_points` RPC（線框加點走雲端）
+- M4：`journey_items` bag 必須同旅程
+- L3：robots／sitemap／各頁 metadata；preview disallow
+- L4：`src/i18n/zh-TW.ts` 起手、`lang=zh-Hant-TW`
+- L5：示意導購文案標明上線前更換
+- L6／L7：拿掉 trycloudflare、刪預設 Next SVG
 
-## 接著做（順序）
+## 還剩（較細）
 
-1. ~~**測試 + CI（M5）**~~ — Vitest + `.github/workflows/ci.yml`（lint／tsc／test／build）已上
-2. ~~**雲端同步實作（M1）**~~ — migration + 編輯鎖 + pull／push／outbox 骨架已上；需在 Supabase 套用 `20261104163018_journey_sync.sql`
-3. **`/rymin` 管理員鎖（M2）** — 跟雲端 catalog 一起：伺服器查 `is_admin`、`noindex`
-4. **上線前** — SEO／robots／sitemap（L3）、換掉 example 導購（L5）
-5. **有空再做** — 大檔拆分（L1）、SSR 介紹頁（L2）、抽字串準備 i18n（L4）；M3／M4／L6／L7 順手
-
-## 已完成（續）
-
-- M5：`npm test`（domain 欄位／點數／天數／出發日；規則引擎護照／國內外／海島／minDays／托運警告）+ CI
-- M1：`docs/SYNC.md` 已拍板；`journey_sync` migration、本機／雲端搶鎖、登入 pull、持鎖 push／outbox、清單頁後者提示
+1. **Realtime** 踢人通知（現在靠進頁搶鎖）
+2. **正式金流** 取代示範加點；上線後關非 admin 的 `grant_points` 或改付款 webhook
+3. **示範帳** 正式環境完全隱藏（DESIGN：穩定 HTTPS 後拿掉）
+4. **L1** wizard／admin／domain 大檔拆分（尚未拆）
+5. **L2** 官網真正 SSR 行銷頁（仍是 client + RequireUser）
+6. **熱門組合**、導購出現畫面（未定案）
+7. Google OAuth 正式審核／上線設定（帳號側）
 
 ## 協作
 
-- Agent 為決策與實作；L 意見經 git 進來，採納與否寫在這裡或 PR 說明，不自動照做。
+- Agent 決策與實作；L 意見經 git，不自動照做。

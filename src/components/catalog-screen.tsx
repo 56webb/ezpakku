@@ -1,6 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import { useCatalog } from "@/hooks/use-catalog";
+import { fetchCloudCatalog } from "@/lib/catalog/cloud";
+import { updateCatalog } from "@/lib/catalog/local";
 import { systemCategories } from "@/lib/seed";
 import { BottomNav, Phone } from "@/components/ui";
 
@@ -8,6 +11,21 @@ export function CatalogScreen() {
   const catalog = useCatalog();
   const items = catalog?.items.filter((item) => item.isActive) ?? [];
   const affiliates = catalog?.affiliates ?? [];
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchCloudCatalog().then((cloud) => {
+      if (cancelled || !cloud?.items?.length) return;
+      updateCatalog((current) => ({
+        ...current,
+        items: cloud.items ?? current.items,
+        affiliates: cloud.affiliates ?? current.affiliates,
+      }));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <Phone
@@ -47,7 +65,7 @@ export function CatalogScreen() {
                           target="_blank"
                           rel="noreferrer"
                         >
-                          導購連結（示意）
+                          {url.includes("example.com") ? "導購連結（示意，上線前更換）" : "聯盟導購"}
                         </a>
                       ) : null}
                     </li>

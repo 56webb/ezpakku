@@ -209,6 +209,77 @@ export async function pullCloudIntoState(state: AppState, userId: string): Promi
   };
 }
 
+/** 把本機新建的旅程送到雲端（create_journey RPC），回傳雲端 journey id。 */
+export async function createJourneyOnCloud(
+  state: AppState,
+  journeyId: string,
+): Promise<{ ok: true; cloudId: string } | { ok: false; reason: string }> {
+  if (!isSupabaseConfigured()) return { ok: true, cloudId: journeyId };
+  const journey = state.journeys.find((entry) => entry.id === journeyId);
+  if (!journey) return { ok: false, reason: "找不到清單" };
+  const bags = state.bags
+    .filter((bag) => bag.journeyId === journeyId)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+  const categories = state.journeyCategories
+    .filter((row) => row.journeyId === journeyId)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+  const items = state.journeyItems
+    .filter((item) => item.journeyId === journeyId)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+
+  const bagKeyById = new Map(bags.map((bag, index) => [bag.id, `bag-${index}`]));
+
+  const { createClient } = await import("@/lib/supabase/client");
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc("create_journey", {
+    p_name: journey.name,
+    p_location: journey.location,
+    p_days: journey.days,
+    p_purpose: journey.purpose,
+    p_start: journey.startDate,
+    p_mode: journey.mode,
+    p_bags: bags.map((bag, index) => ({
+      key: `bag-${index}`,
+      name: bag.name,
+      type: bag.type,
+      color: bag.color,
+      sort_order: bag.sortOrder,
+    })),
+    p_categories: categories.map((row) => {
+      const category = state.categories.find((entry) => entry.id === row.categoryId);
+      return {
+        id: row.categoryId,
+        name: category?.name ?? "分類",
+        is_system: category?.isSystem ?? true,
+        sort_order: row.sortOrder,
+        collapse_checked: row.collapseChecked,
+      };
+    }),
+    p_items: items.map((item, index) => ({
+      item_id: item.itemId,
+      custom_name: item.customName,
+      category_id: item.categoryId,
+      bag_key: bagKeyById.get(item.bagId) ?? "bag-0",
+      sort_order: index,
+      tags: item.tags,
+      note: item.note,
+    })),
+  });
+
+  if (error) return { ok: false, reason: error.message };
+  if (typeof data !== "string" || !data) return { ok: false, reason: "雲端沒有回傳旅程 id" };
+  return { ok: true, cloudId: data };
+}
+
+export async function deleteJourneyOnCloud(journeyId: string): Promise<{ ok: boolean; reason?: string }> {
+  if (!isSupabaseConfigured()) return { ok: true };
+  const { createClient } = await import("@/lib/supabase/client");
+  const supabase = createClient();
+  const { error } = await supabase.from("journeys").delete().eq("id", journeyId);
+  if (error) return { ok: false, reason: error.message };
+  return { ok: true };
+}
+
 export async function pushJourneyBundle(
   state: AppState,
   journeyId: string,
@@ -243,4 +314,13 @@ export async function flushOutbox(getState: () => AppState): Promise<void> {
     if (result.ok || result.conflict) removeOutboxJourney(entry.journeyId);
     else bumpOutboxTries(entry.journeyId);
   }
+}
+
+export async function grantPointsOnCloud(amount: number): Promise<{ ok: boolean; points?: number; reason?: string }> {
+  if (!isSupabaseConfigured()) return { ok: false, reason: "尚未設定雲端" };
+  const { createClient } = await import("@/lib/supabase/client");
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc("grant_points", { p_amount: amount });
+  if (error) return { ok: false, reason: error.message };
+  return { ok: true, points: Number(data) };
 }

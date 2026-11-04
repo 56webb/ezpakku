@@ -32,7 +32,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="zh-Hant" className={`${manrope.variable} ${noto.variable}`}>
+    <html lang="zh-Hant-TW" className={`${manrope.variable} ${noto.variable}`}>
       <body style={{ fontFamily: "var(--font-manrope), var(--font-noto), sans-serif" }}>
         <StoreProvider>{children}</StoreProvider>
       </body>
