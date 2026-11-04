@@ -14,7 +14,7 @@
 ## 接著做（順序）
 
 1. ~~**測試 + CI（M5）**~~ — Vitest + `.github/workflows/ci.yml`（lint／tsc／test／build）已上
-2. **雲端同步策略（M1）** — 設計見 `docs/SYNC.md`；**等確認兩點後再實作**
+2. ~~**雲端同步實作（M1）**~~ — migration + 編輯鎖 + pull／push／outbox 骨架已上；需在 Supabase 套用 `20261104163018_journey_sync.sql`
 3. **`/rymin` 管理員鎖（M2）** — 跟雲端 catalog 一起：伺服器查 `is_admin`、`noindex`
 4. **上線前** — SEO／robots／sitemap（L3）、換掉 example 導購（L5）
 5. **有空再做** — 大檔拆分（L1）、SSR 介紹頁（L2）、抽字串準備 i18n（L4）；M3／M4／L6／L7 順手
@@ -22,7 +22,7 @@
 ## 已完成（續）
 
 - M5：`npm test`（domain 欄位／點數／天數／出發日；規則引擎護照／國內外／海島／minDays／托運警告）+ CI
-- M1 設計稿：`docs/SYNC.md`（尚未寫同步程式）
+- M1：`docs/SYNC.md` 已拍板；`journey_sync` migration、本機／雲端搶鎖、登入 pull、持鎖 push／outbox、清單頁後者提示
 
 ## 協作
 

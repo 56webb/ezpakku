@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { useEditLock } from "@/hooks/use-edit-lock";
 import { BAG_COLORS, BAG_TYPES } from "@/lib/constants";
 import { isIsoDate, todayISO } from "@/lib/dates";
 import { bagsFor, canEditJourney, itemsFor, journeyItemName, ownedJourneyCount, quoteCreate } from "@/lib/domain";
@@ -17,6 +18,9 @@ export function JourneyScreen({ journeyId }: { journeyId: string }) {
   const router = useRouter();
   const journey = store.state.journeys.find((entry) => entry.id === journeyId);
   const user = store.user;
+  const mayEdit = Boolean(user && journey && canEditJourney(store.state, user.id, journey.id));
+  const editLock = useEditLock(journeyId, user?.id ?? null, mayEdit);
+  const writeBlocked = editLock.status === "blocked" || editLock.status === "acquiring";
   const [error, setError] = useState("");
   const [movingId, setMovingId] = useState<string | null>(null);
   const [addingBagId, setAddingBagId] = useState<string | null>(null);
@@ -73,6 +77,10 @@ export function JourneyScreen({ journeyId }: { journeyId: string }) {
   const share = store.state.shares.find((entry) => entry.journeyId === journey.id);
 
   function saveMeta() {
+    if (writeBlocked) {
+      setError(editLock.reason ?? "其他人正在編輯這份清單");
+      return;
+    }
     const result = store.updateMeta(journeyId, {
       name: meta?.name,
       location: meta?.location,
@@ -128,6 +136,14 @@ export function JourneyScreen({ journeyId }: { journeyId: string }) {
       <main className="flex flex-col gap-4 p-4">
         <p className="text-xs">建立模式：{journey.mode === "detail" ? "細節控" : "通用範本"}</p>
         {!owner && <p className="text-xs font-bold">你正在編輯共用清單</p>}
+        {editLock.status === "acquiring" ? (
+          <p className="wire-card text-sm">正在取得編輯權…</p>
+        ) : null}
+        {editLock.status === "blocked" ? (
+          <p role="status" className="border border-[var(--warn)] bg-[var(--warn-soft)] px-3 py-2 text-sm font-bold">
+            {editLock.reason ?? "其他人正在編輯這份清單"}。你目前只能查看，對方離開後重新整理即可再編。
+          </p>
+        ) : null}
         <ErrorText>{error}</ErrorText>
         <section className="wire-card" aria-label="打包進度">
           <div className="flex items-center justify-between text-sm font-bold">

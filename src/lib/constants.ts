@@ -3,6 +3,11 @@ export const POINTS_PER_SLOT = 100;
 export const STORAGE_KEY = "ezpakku-state-v1";
 export const DRAFT_KEY = "ezpakku-draft-v1";
 export const OAUTH_FLAG = "ezpakku-oauth";
+export const SESSION_KEY = "ezpakku-session-id";
+export const EDIT_LOCKS_KEY = "ezpakku-edit-locks-v1";
+export const OUTBOX_KEY = "ezpakku-outbox-v1";
+export const LOCK_TTL_MS = 90_000;
+export const LOCK_HEARTBEAT_MS = 20_000;
 
 export const LOGIN_DISCLAIMER =
   "使用 Google 帳號僅用於同步與分享清單，不會寄送廣告信，也不會將資料用於其他用途。";

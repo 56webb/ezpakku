@@ -40,6 +40,8 @@ export type Journey = {
   endDate: string;
   mode: ListMode;
   createdAt: string;
+  /** ISO；雲端同步用。本機沒有時可缺。 */
+  updatedAt?: string;
 };
 
 export type Bag = {
