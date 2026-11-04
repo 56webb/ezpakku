@@ -134,3 +134,62 @@ html lang 改成 zh-Hant-TW。每次只改一個畫面檔案。
 7. M3、M4、L6、L7 順手修
 
 —— L
+
+---
+
+## 2026-11-04 複查（權限問題 H1/H2/H3）
+
+**結論：3 個問題都已修好**（修在 `supabase/migrations/20261104070000_fix_share_rls.sql`，不是 `sync_hardening.sql`）。只看程式碼，沒有實際對資料庫跑過，建議上線前在 Supabase 測試環境跑一次。
+
+| 問題 | 狀態 | 證據 |
+|---|---|---|
+| H1 `share_id` 變數和欄位同名 | ✅ 已修 | `fix_share_rls.sql:78` 變數改名 `v_share_id`，`:105` 刪除時寫全名 `public.share_members.share_id` |
+| H2 唯讀連結的人看不到清單 | ✅ 已修 | `:7-27` 新增 `can_view`（擁有者或任何成員）；`:52-56` 打開連結一律加為成員；`:114-162` 讀取改用 `can_view`、寫入仍用 `can_edit`（init `:236` 會檢查 `permission = 'editable'`，唯讀的人不能改） |
+| H3 編輯者可把旅程擁有者改成自己 | ✅ 已修 | `:165-166` 只開放改名稱/地點/目的/天數/日期；`:168-191` trigger 擋下改 `user_id`、`mode`、`id` |
+
+### 新發現（依重要度）
+
+1. **免費點數可以無限領**（`sync_hardening.sql:23`）：每次最多 100 點，但沒有次數限制，一直呼叫就能無限累積。現在是示範期沒關係，**接金流前一定要改**。
+2. **`/rymin` 在沒設定 Supabase 時完全不擋**（`src/app/rymin/page.tsx:15-28`）：本機開發方便，但如果正式站環境變數漏設，後台就對所有人開放。有登入時的檢查是對的（`:18-22` 讀自己的 `is_admin`，`users` 表只開放 select，使用者改不了自己的 `is_admin`）。
+3. **改成唯讀時，原本唯讀的人也被踢掉**（`fix_share_rls.sql:103-106`）：會刪掉全部成員，之前的人要重開一次連結才看得到。不是漏洞，比較像體驗問題；另外連結 token 不會換，被降級的編輯者重開連結仍可唯讀觀看，如果想「真正收回」要加一個「重設連結」功能。
+
+其他：所有 SECURITY DEFINER 函式都有 `set search_path`，也都有檢查 `auth.uid()`；同步 RPC（`journey_sync.sql:189、:65`）都會先檢查 `can_edit` 和編輯鎖。沒看到新的 RLS 漏洞。
+
+### 貼給 Cursor 的指令
+
+**(A) 點數上限（接金流前必做）**
+```
+supabase/migrations/20261104170000_sync_hardening.sql 的 private.grant_points 讓非 admin 每次領 100 點但沒有次數限制，可無限累積。請新增一個 migration（不要改舊 migration）：非 admin 只能領一次示範點（例如在 users 加 demo_points_claimed boolean 或記錄到 point_ledger），admin 維持原本上限。前端對應調整錯誤訊息。補 Vitest 或 SQL 測試。開新分支並開 PR，不要直接推 main。
+```
+
+**(B) /rymin 在正式環境預設關閉**
+```
+src/app/rymin/page.tsx 在 isSupabaseConfigured() 為 false 時直接顯示後台。請改成：只有 process.env.NODE_ENV === "development" 才允許未設定 Supabase 時進入，其他情況一律 notFound()。不要動其他功能。開新分支並開 PR，不要直接推 main。
+```
+
+**(C)（可選）改唯讀時保留成員、可重設連結**
+```
+supabase/migrations/20261104070000_fix_share_rls.sql 的 set_share_permission 改成 read_only 時會刪掉所有 share_members，連原本唯讀的人也要重開連結。請新增 migration：改唯讀時不要刪成員（can_edit 已經會檢查 permission）；另外新增 owner 專用的 reset_share_token RPC，換 token 並清空成員，用來真正收回分享。開新分支並開 PR，不要直接推 main。
+```
+
+---
+
+## 2026-11-04 CI 失敗分析
+
+**結論：不嚴重，是 CI 步驟順序問題，程式本身大概沒寫錯。**
+
+- 失敗點：`src/app/layout.tsx:33` → `TS2304 Cannot find name 'LayoutProps'`。
+- 原因：`LayoutProps` 是 Next.js 16 由 typegen 在 build 時才產生的全域型別（放在 `.next/types`），但 CI 在 build 之前先跑 `tsc --noEmit`，那時型別還不存在。
+- 今天 3 次 CI 都卡在同一行，後面的測試和 build 都沒跑到。
+- 其他提示都只是警告：`<img>` 建議改 `next/image`（`src/components/ui.tsx:60`）、`actions/checkout@v4` 和 `setup-node@v4` 用的 Node 20 即將淘汰、`ubuntu-latest` 版本通知。
+- `npm ci` 回報 19 個漏洞（2 個 critical），建議跑一次 `npm audit` 看看。
+
+**(1) 修 CI（必做）**
+```
+CI 的 typecheck 一直失敗：src/app/layout.tsx(33,50) TS2304 Cannot find name 'LayoutProps'。原因是 LayoutProps/PageProps 是 Next.js 16 由 typegen 產生在 .next/types 的全域型別，而 CI 在 build 之前就跑 tsc --noEmit。請把 package.json 的 "typecheck" 改成 "next typegen && tsc --noEmit"，確認 tsconfig.json 的 include 含有 ".next/types/**/*.ts"（以實際產出路徑為準）。在乾淨環境（刪除 .next 和 next-env.d.ts）跑 npm ci && npm run lint && npm run typecheck && npm test && npm run build 全部通過。不要改 layout.tsx、不要動其他功能。開新分支並開 PR，不要直接推 main。
+```
+
+**(2)（可選）清掉警告**
+```
+請把 .github/workflows 裡的 actions/checkout 和 actions/setup-node 升到支援 Node 24 的版本；把 src/components/ui.tsx:60 的 <img> 改用 next/image 的 <Image />（設好 width/height 或 fill，外部圖片要在 next.config 設 images.remotePatterns）。確認 lint/typecheck/test/build 都通過。開新分支並開 PR，不要直接推 main。
+```
