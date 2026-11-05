@@ -74,7 +74,7 @@ export async function pullCloudIntoState(state: AppState, userId: string): Promi
 
   const { data: profile } = await supabase
     .from("users")
-    .select("id, name, email, points, slot_capacity")
+    .select("id, name, email, points, slot_capacity, demo_points_claimed")
     .eq("id", userId)
     .maybeSingle();
 
@@ -130,6 +130,7 @@ export async function pullCloudIntoState(state: AppState, userId: string): Promi
         email: (profile.email as string) || "",
         points: Number(profile.points ?? 0),
         slotCapacity: Number(profile.slot_capacity ?? FREE_JOURNEY_LIMIT),
+        demoPointsClaimed: Boolean(profile.demo_points_claimed),
       }
     : state.users.find((user) => user.id === userId) ?? {
         id: userId,
@@ -137,6 +138,7 @@ export async function pullCloudIntoState(state: AppState, userId: string): Promi
         email: "",
         points: 0,
         slotCapacity: FREE_JOURNEY_LIMIT,
+        demoPointsClaimed: false,
       };
 
   const users = state.users.some((user) => user.id === userId)

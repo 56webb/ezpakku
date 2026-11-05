@@ -278,18 +278,27 @@ function createStoreValue(state: AppState): StoreValue {
       if (isSupabaseConfigured() && !user.id.startsWith("demo-")) {
         void grantPointsOnCloud(POINTS_PER_SLOT).then(async (result) => {
           if (!result.ok) {
-            setSyncNotice({ kind: "error", message: result.reason ?? "加點失敗" });
+            const message =
+              result.reason?.includes("already claimed") || result.reason?.includes("demo points")
+                ? "示範點已領過，每位帳號限一次"
+                : (result.reason ?? "加點失敗");
+            setSyncNotice({ kind: "error", message });
             return;
           }
           const current = getAppSnapshot();
           if (!current) return;
           const merged = await pullCloudIntoState(current, user.id);
           updateAppState(() => merged);
-          setSyncNotice({ kind: "ok", message: `已加 ${POINTS_PER_SLOT} 點` });
+          setSyncNotice({ kind: "ok", message: `已加 ${POINTS_PER_SLOT} 點（示範限領一次）` });
         });
         return;
       }
-      updateAppState((current) => grantPoints(current, user.id, POINTS_PER_SLOT));
+      const result = grantPoints(getAppSnapshot() ?? createInitialState(), user.id, POINTS_PER_SLOT);
+      if (!result.ok) {
+        setSyncNotice({ kind: "error", message: result.reason });
+        return;
+      }
+      updateAppState(() => result.state);
     },
     buySlot: () => {
       const result = apply(user?.id ?? null, (current, userId) => buySlot(current, userId));

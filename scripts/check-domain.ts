@@ -62,10 +62,15 @@ const blocked = commitJourney(state, userA, input("第三份"));
 assert(!blocked.ok, "third blocked while capacity is full");
 assert(account()?.points === 0, "failed create does not charge");
 
-state = grantPoints(state, userA, 100);
+const grantedOnce = grantPoints(state, userA, 100);
+assert(grantedOnce.ok, "claim demo points once");
+if (!grantedOnce.ok) throw new Error("narrow");
+state = grantedOnce.state;
 const stillBlocked = commitJourney(state, userA, input("第三份"));
 assert(!stillBlocked.ok, "points do not create a journey by themselves");
 assert(account()?.points === 100, "unused points stay");
+const grantedTwice = grantPoints(state, userA, 100);
+assert(!grantedTwice.ok, "demo points only once");
 
 const bought = buySlot(state, userA);
 assert(bought.ok, "buy slot");
@@ -108,7 +113,13 @@ assert(travelDays(state, userA) === 22, "replacement adds only its own days");
 const copyBlocked = copyJourney(state, userA, first.id, "2026-12-01");
 assert(!copyBlocked.ok, "copy needs an open slot");
 
-state = grantPoints(state, userA, 100);
+// 第二格測試：直接塞點數（示範點已領過，不再走 grantPoints）
+state = {
+  ...state,
+  users: state.users.map((user) =>
+    user.id === userA ? { ...user, points: 100 } : user,
+  ),
+};
 const extra = buySlot(state, userA);
 assert(extra.ok, "buy another slot");
 if (!extra.ok) throw new Error("narrow");

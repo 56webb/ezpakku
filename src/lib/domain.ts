@@ -130,13 +130,25 @@ export function canEditJourney(state: AppState, userId: string, journeyId: strin
   return state.shareMembers.some((member) => member.shareId === share.id && member.userId === userId);
 }
 
-export function grantPoints(state: AppState, userId: string, amount: number): AppState {
-  if (!Number.isInteger(amount) || amount <= 0) return state;
+export function grantPoints(
+  state: AppState,
+  userId: string,
+  amount: number,
+): Result<{ state: AppState }> {
+  if (!Number.isInteger(amount) || amount <= 0) return { ok: false, reason: "點數不正確" };
+  const user = state.users.find((entry) => entry.id === userId);
+  if (!user) return { ok: false, reason: "請先登入" };
+  if (user.demoPointsClaimed) return { ok: false, reason: "示範點已領過，每位帳號限一次" };
   return {
-    ...state,
-    users: state.users.map((user) =>
-      user.id === userId ? { ...user, points: user.points + amount } : user,
-    ),
+    ok: true,
+    state: {
+      ...state,
+      users: state.users.map((entry) =>
+        entry.id === userId
+          ? { ...entry, points: entry.points + amount, demoPointsClaimed: true }
+          : entry,
+      ),
+    },
   };
 }
 
