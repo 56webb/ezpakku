@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -57,7 +58,17 @@ export function BottomNav() {
 export function BagGlyph({ type, size = 40 }: { type: BagType; size?: number }) {
   const src = BAG_ICONS[type];
   if (src) {
-    return <img src={src} alt="" width={size} height={size} className="bag-icon" style={{ width: size, height: size }} />;
+    return (
+      <Image
+        src={src}
+        alt=""
+        width={size}
+        height={size}
+        className="bag-icon"
+        style={{ width: size, height: size }}
+        unoptimized
+      />
+    );
   }
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden="true" className="bag-icon">

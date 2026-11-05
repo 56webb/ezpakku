@@ -115,9 +115,22 @@ describe("欄位與點數", () => {
   });
 
   it("點數不足不能加欄位", () => {
-    const state = grantPoints(createInitialState(), userA, POINTS_PER_SLOT - 1);
-    const bought = buySlot(state, userA);
+    const granted = grantPoints(createInitialState(), userA, POINTS_PER_SLOT - 1);
+    expect(granted.ok).toBe(true);
+    if (!granted.ok) return;
+    const bought = buySlot(granted.state, userA);
     expect(bought.ok).toBe(false);
+  });
+
+  it("示範點每位帳號只能領一次", () => {
+    const first = grantPoints(createInitialState(), userA, POINTS_PER_SLOT);
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+    expect(userOf(first.state).points).toBe(POINTS_PER_SLOT);
+    const second = grantPoints(first.state, userA, POINTS_PER_SLOT);
+    expect(second.ok).toBe(false);
+    if (second.ok) return;
+    expect(second.reason).toMatch(/限一次|已領過/);
   });
 });
 

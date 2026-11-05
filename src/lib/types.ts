@@ -10,6 +10,8 @@ export type User = {
   email: string;
   points: number;
   slotCapacity: number;
+  /** 本機／雲端：非 admin 示範點是否已領過 */
+  demoPointsClaimed?: boolean;
 };
 
 export type Category = {

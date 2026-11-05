@@ -23,7 +23,10 @@ export default async function Page() {
     } catch {
       notFound();
     }
+    return <AdminScreen />;
   }
-  // 沒設 Supabase：本機開發可進後台（只改 localStorage catalog）
+
+  // 僅本機 development 且未設 Supabase 時可進（避免正式站漏 env 就敞開後台）
+  if (process.env.NODE_ENV !== "development") notFound();
   return <AdminScreen />;
 }
