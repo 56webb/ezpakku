@@ -5,7 +5,12 @@ import type { GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
 import { destinations } from "@/lib/destinations";
 import "maplibre-gl/dist/maplibre-gl.css";
 
-const MAP_STYLE = "https://tiles.openfreemap.org/styles/dark";
+/** 亮色底圖；暗色太難辨認台灣與圓點。 */
+const MAP_STYLE = "https://tiles.openfreemap.org/styles/liberty";
+
+/** 以台灣為主的初始視角（約含周邊常去點，手機底欄會遮一截）。 */
+const TAIWAN_CENTER: [number, number] = [121.0, 23.7];
+const TAIWAN_ZOOM = 5.4;
 
 const places = {
   type: "FeatureCollection" as const,
@@ -46,8 +51,8 @@ export function DestinationMap({ onPick }: { onPick: (country: string, city: str
       map = new maplibregl.Map({
         container,
         style: MAP_STYLE,
-        center: [20, 20],
-        zoom: 1.15,
+        center: TAIWAN_CENTER,
+        zoom: TAIWAN_ZOOM,
         attributionControl: false,
       });
       map.addControl(new maplibregl.AttributionControl({ compact: true }), "top-left");
@@ -74,10 +79,10 @@ export function DestinationMap({ onPick }: { onPick: (country: string, city: str
           source: "places",
           filter: ["has", "point_count"],
           paint: {
-            "circle-color": "#8b7cf7",
+            "circle-color": "#0f766e",
             "circle-radius": 16,
             "circle-stroke-width": 7,
-            "circle-stroke-color": "rgba(139, 124, 247, 0.35)",
+            "circle-stroke-color": "rgba(15, 118, 110, 0.28)",
           },
         });
         map.addLayer({
@@ -99,10 +104,10 @@ export function DestinationMap({ onPick }: { onPick: (country: string, city: str
           source: "places",
           filter: ["!", ["has", "point_count"]],
           paint: {
-            "circle-color": "#9aa6ff",
+            "circle-color": "#0d9488",
             "circle-radius": 6,
             "circle-stroke-width": 6,
-            "circle-stroke-color": "rgba(154, 166, 255, 0.35)",
+            "circle-stroke-color": "rgba(13, 148, 136, 0.28)",
           },
         });
         map.addLayer({
@@ -117,9 +122,9 @@ export function DestinationMap({ onPick }: { onPick: (country: string, city: str
             "text-anchor": "top",
           },
           paint: {
-            "text-color": "#f7f4ee",
-            "text-halo-color": "#111111",
-            "text-halo-width": 1.2,
+            "text-color": "#1a1a1a",
+            "text-halo-color": "#ffffff",
+            "text-halo-width": 1.4,
           },
         });
 
@@ -134,13 +139,6 @@ export function DestinationMap({ onPick }: { onPick: (country: string, city: str
             center: feature.geometry.coordinates as [number, number],
             zoom,
           });
-        });
-        const bounds = new maplibregl.LngLatBounds();
-        for (const feature of places.features) bounds.extend(feature.geometry.coordinates);
-        map.fitBounds(bounds, {
-          padding: { top: 56, right: 28, bottom: 300, left: 28 },
-          maxZoom: 2,
-          duration: 0,
         });
 
         map.on("click", "places-point", (event) => {

@@ -1,3 +1,4 @@
+import type { BagPref } from "@/lib/bag-prefs";
 import type { BagType } from "@/lib/types";
 import type { ClimateChoice, LuggagePlan, TravelType } from "@/lib/rules/generator";
 
@@ -17,6 +18,8 @@ export type CatalogItemRow = {
   description: string;
   templateKey: string | null;
   defaultBag: "personal" | "main";
+  /** 包包志願序；空則依分類預設。 */
+  bagPrefs: BagPref[];
   tags: string[];
   note: string;
   affiliateId: string | null;

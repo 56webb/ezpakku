@@ -36,7 +36,7 @@ export function BottomNav() {
     { href: "/site", label: "官網", testId: "nav-site" },
   ];
   return (
-    <nav className="grid grid-cols-3 border-t-2 border-black bg-white" aria-label="主要">
+    <nav className="grid grid-cols-3 border-t border-[var(--line)] bg-white" aria-label="主要">
       {items.map((item) => {
         const active = pathname === item.href;
         return (
@@ -45,7 +45,7 @@ export function BottomNav() {
             href={item.href}
             data-testid={item.testId}
             aria-current={active ? "page" : undefined}
-            className={`flex min-h-14 items-center justify-center border-r-2 border-black text-sm font-bold last:border-r-0 ${active ? "bg-black text-white" : "bg-white"}`}
+            className={`flex min-h-14 items-center justify-center border-r border-[var(--line)] text-sm font-bold last:border-r-0 ${active ? "bg-[var(--accent)] text-white" : "bg-white text-[var(--ink)]"}`}
           >
             {item.label}
           </Link>
@@ -113,7 +113,7 @@ export function BagPicker({
 export function ErrorText({ children }: { children: string }) {
   if (!children) return null;
   return (
-    <p data-testid="error" role="alert" className="border-2 border-black bg-white px-3 py-2 text-sm font-bold">
+    <p data-testid="error" role="alert" className="rounded-2xl border border-[var(--warn)] bg-[var(--warn-soft)] px-3 py-2 text-sm font-bold text-[var(--warn)]">
       {children}
     </p>
   );

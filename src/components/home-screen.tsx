@@ -26,7 +26,7 @@ export function HomeScreen() {
   return (
     <Phone
       header={
-        <header className="flex items-start justify-between gap-3 border-b-2 border-black px-4 py-3">
+        <header className="flex items-start justify-between gap-3 border-b border-[var(--line)] px-4 py-3">
           <div>
             <p data-testid="points-balance" className="text-lg font-black">
               {user.points} {zhTW.points}

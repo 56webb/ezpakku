@@ -30,7 +30,7 @@ describe("規則引擎基礎", () => {
 });
 
 describe("generatePackingList", () => {
-  it("出國日本會有護照與兩包（隨身＋托運）", () => {
+  it("出國日本會有護照與三包（隨身＋後揹＋托運）", () => {
     const packing = generatePackingList({
       countryName: "日本",
       startDate: "2026-07-01",
@@ -41,9 +41,10 @@ describe("generatePackingList", () => {
     });
     expect(packing.meta.international).toBe(true);
     expect(packing.meta.countryCode).toBe("JP");
-    expect(packing.bags).toHaveLength(2);
+    expect(packing.bags).toHaveLength(3);
     expect(packing.bags[0].kind).toBe("personal");
-    expect(packing.bags[1].kind).toBe("checked");
+    expect(packing.bags[1].type).toBe("backpack");
+    expect(packing.bags[2].kind).toBe("checked");
     expect(packing.items.some((item) => item.templateId === "passport")).toBe(true);
   });
 
@@ -57,8 +58,25 @@ describe("generatePackingList", () => {
       climate: "hot",
     });
     expect(packing.meta.international).toBe(false);
-    expect(packing.bags[1].kind).toBe("carryon");
+    expect(packing.bags[2].kind).toBe("carryon");
     expect(packing.items.some((item) => item.templateId === "passport")).toBe(false);
+  });
+
+  it("衣物進行李箱，行動電源進後揹包", () => {
+    const packing = generatePackingList({
+      countryName: "日本",
+      startDate: "2026-07-01",
+      days: 5,
+      types: ["city"],
+      luggage: "checked",
+      climate: "warm",
+    });
+    const clothes = packing.items.find((item) => item.templateId === "daily-clothes" || item.templateId === "pajamas");
+    const power = packing.items.find((item) => item.templateId === "powerbank");
+    expect(clothes?.bagIndex).toBe(2);
+    expect(power?.bagIndex).toBe(1);
+    expect(packing.items.some((item) => item.templateId === "extension-cord")).toBe(true);
+    expect(packing.items.some((item) => item.templateId === "eco-bag")).toBe(true);
   });
 
   it("海島行程會出現泳衣相關物品", () => {

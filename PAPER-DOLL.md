@@ -66,7 +66,8 @@ SVG 可以交，但一系列娃娃以 PNG 為準。不要用 JPG。
 - 尺寸：96 × 144 像素。直幅。
 - 檔案：PNG，背景透明。不要 JPG。
 - 畫面用 2 倍顯示，變成 192 × 288。像素保持方塊，不模糊放大。
-- 一張檔案一個人。放在 `public/travelers/`，檔名英文小寫，例如 `sunny.png`、`traveler-2.png`。不要每張都叫 `traveler.png`，會互相蓋掉。
+- 一張檔案一個人。放在 `public/travelers/`，檔名英文小寫，例如 `sunny.png`、`camper.png`。不要每張都叫 `traveler.png`，會互相蓋掉。
+- 程式目錄在 `src/lib/travelers.ts`。選包畫面做成 RO（仙境傳說）風格裝備視窗：左角色、右 Item 列、下 Inventory。人物與包包圖示皆為 RO 風透明 PNG，放在 `public/travelers/`、`public/bags/`。
 - 人物可以有頭髮、五官、衣服。顏色直接畫好，這組圖不跟著色條變色。
 - 一直穿在身上的裝備，例如參考圖的後背包，畫進這張。錢包、行李箱那些清單圖示不要畫進來。
 - 不要畫介面、文字、外框。

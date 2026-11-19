@@ -354,3 +354,115 @@ export const destinations: DestinationCountry[] = [
     ],
   },
 ];
+
+/** 台灣旅客常去國家，按鈕顯示順序。 */
+export const POPULAR_COUNTRY_IDS = [
+  "jp",
+  "kr",
+  "th",
+  "vn",
+  "hk",
+  "mo",
+  "sg",
+  "my",
+  "ph",
+  "id",
+  "cn",
+  "tw",
+  "us",
+  "au",
+  "gu",
+  "fr",
+  "it",
+  "gb",
+  "ch",
+  "nz",
+] as const;
+
+/** 尚未選國家時，城市欄顯示的熱門捷徑。 */
+export const POPULAR_CITY_SHORTCUTS = [
+  { countryId: "jp", placeId: "tokyo" },
+  { countryId: "jp", placeId: "osaka" },
+  { countryId: "jp", placeId: "okinawa" },
+  { countryId: "jp", placeId: "fukuoka" },
+  { countryId: "kr", placeId: "seoul" },
+  { countryId: "kr", placeId: "jeju" },
+  { countryId: "th", placeId: "bangkok" },
+  { countryId: "th", placeId: "chiang-mai" },
+  { countryId: "vn", placeId: "da-nang" },
+  { countryId: "hk", placeId: "tsim-sha-tsui" },
+  { countryId: "mo", placeId: "ruins-of-st-paul" },
+  { countryId: "sg", placeId: "gardens-by-the-bay" },
+  { countryId: "my", placeId: "kuala-lumpur" },
+  { countryId: "ph", placeId: "cebu" },
+  { countryId: "id", placeId: "bali" },
+  { countryId: "cn", placeId: "shanghai" },
+  { countryId: "tw", placeId: "taipei" },
+  { countryId: "us", placeId: "los-angeles" },
+  { countryId: "au", placeId: "sydney" },
+  { countryId: "gu", placeId: "tumon" },
+] as const;
+
+export function getDestinationById(id: string): DestinationCountry | undefined {
+  return destinations.find((country) => country.id === id);
+}
+
+export function getPopularCountries(): DestinationCountry[] {
+  return POPULAR_COUNTRY_IDS.map((id) => getDestinationById(id)).filter(
+    (country): country is DestinationCountry => Boolean(country),
+  );
+}
+
+export function matchDestinationCountry(name: string): DestinationCountry | undefined {
+  const query = name.trim();
+  if (!query) return undefined;
+  return (
+    destinations.find((country) => country.name === query) ??
+    destinations.find((country) => country.name.includes(query) || query.includes(country.name))
+  );
+}
+
+export function resolveCityShortcut(shortcut: {
+  countryId: string;
+  placeId: string;
+}): { country: string; city: string } | null {
+  const country = getDestinationById(shortcut.countryId);
+  const place = country?.places.find((item) => item.id === shortcut.placeId);
+  if (!country || !place) return null;
+  return { country: country.name, city: place.name };
+}
+
+export function getPopularCityShortcuts(): { country: string; city: string }[] {
+  return POPULAR_CITY_SHORTCUTS.map(resolveCityShortcut).filter(
+    (item): item is { country: string; city: string } => Boolean(item),
+  );
+}
+
+/** 用國家／城市名稱對到地圖目錄裡的座標（天氣查詢優先用這個，避開地理編碼）。 */
+export function findDestinationCoords(
+  countryName: string,
+  cityName?: string,
+): { placeName: string; latitude: number; longitude: number } | null {
+  const country = matchDestinationCountry(countryName);
+  if (!country) return null;
+  const cityQuery = cityName?.trim() ?? "";
+  if (cityQuery) {
+    const place =
+      country.places.find((item) => item.name === cityQuery) ??
+      country.places.find((item) => item.name.includes(cityQuery) || cityQuery.includes(item.name));
+    if (place) {
+      return {
+        placeName: `${country.name} · ${place.name}`,
+        latitude: place.latitude,
+        longitude: place.longitude,
+      };
+    }
+  }
+  const anchor = country.places[0];
+  if (!anchor) return null;
+  return {
+    placeName: country.name,
+    latitude: anchor.latitude,
+    longitude: anchor.longitude,
+  };
+}

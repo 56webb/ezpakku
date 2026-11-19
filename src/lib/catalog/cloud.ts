@@ -12,7 +12,7 @@ export async function fetchCloudCatalog(): Promise<Partial<CatalogState> | null>
       supabase
         .from("items")
         .select(
-          "id, category_id, name, description, template_key, default_bag, tags, note, affiliate_id, affiliate_url, is_active, sort_order",
+          "id, category_id, name, description, template_key, default_bag, bag_prefs, tags, note, affiliate_id, affiliate_url, is_active, sort_order",
         )
         .eq("is_active", true)
         .order("sort_order"),
@@ -20,20 +20,25 @@ export async function fetchCloudCatalog(): Promise<Partial<CatalogState> | null>
     ]);
     if (!items?.length) return null;
 
-    const mappedItems: CatalogItemRow[] = items.map((item, index) => ({
-      id: item.id as string,
-      categoryId: item.category_id as string,
-      name: item.name as string,
-      description: (item.description as string) ?? "",
-      templateKey: (item.template_key as string | null) ?? null,
-      defaultBag: ((item.default_bag as string) === "personal" ? "personal" : "main") as "personal" | "main",
-      tags: (item.tags as string[]) ?? [],
-      note: (item.note as string) ?? "",
-      affiliateId: (item.affiliate_id as string | null) ?? null,
-      affiliateUrl: (item.affiliate_url as string | null) ?? null,
-      isActive: Boolean(item.is_active),
-      sortOrder: Number(item.sort_order ?? index),
-    }));
+    const mappedItems: CatalogItemRow[] = items.map((item, index) => {
+      const defaultBag = ((item.default_bag as string) === "personal" ? "personal" : "main") as "personal" | "main";
+      const bagPrefs = Array.isArray(item.bag_prefs) ? (item.bag_prefs as CatalogItemRow["bagPrefs"]) : [];
+      return {
+        id: item.id as string,
+        categoryId: item.category_id as string,
+        name: item.name as string,
+        description: (item.description as string) ?? "",
+        templateKey: (item.template_key as string | null) ?? null,
+        defaultBag,
+        bagPrefs,
+        tags: (item.tags as string[]) ?? [],
+        note: (item.note as string) ?? "",
+        affiliateId: (item.affiliate_id as string | null) ?? null,
+        affiliateUrl: (item.affiliate_url as string | null) ?? null,
+        isActive: Boolean(item.is_active),
+        sortOrder: Number(item.sort_order ?? index),
+      };
+    });
 
     const mappedAffiliates: CatalogAffiliate[] = (affiliates ?? []).map((row) => ({
       id: row.id as string,

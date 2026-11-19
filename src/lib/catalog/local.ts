@@ -1,6 +1,7 @@
 import safetyData from "@/data/safety-rules.json";
+import { bagPrefsFromLegacy, CATEGORY_BAG_PREFS, legacyBagFromPrefs, type BagPref } from "@/lib/bag-prefs";
 import { BAG_COLORS } from "@/lib/constants";
-import { systemCategories, systemItems } from "@/lib/seed";
+import { categoryIds, systemCategories, systemItems } from "@/lib/seed";
 import type {
   CatalogAffiliate,
   CatalogBagPreset,
@@ -9,6 +10,42 @@ import type {
   CatalogSafetyTag,
   CatalogState,
 } from "@/lib/catalog/types";
+
+const CATEGORY_KEY_BY_ID: Record<string, string> = {
+  [categoryIds.clothes]: "clothes",
+  [categoryIds.toiletry]: "toiletries",
+  [categoryIds.electronics]: "electronics",
+  [categoryIds.docs]: "docs",
+  [categoryIds.health]: "health",
+  [categoryIds.misc]: "misc",
+  [categoryIds.skincare]: "skincare",
+  [categoryIds.makeup]: "makeup",
+  [categoryIds.outdoor]: "outdoor",
+  [categoryIds.event]: "event",
+};
+
+export function bagPrefsForItem(name: string, categoryId: string, personal = false): BagPref[] {
+  if (name.includes("行動電源") || name.includes("充電器") || name.includes("充電線")) {
+    return ["backpack", "anti_theft", "sling"];
+  }
+  if (name.includes("護照") || name.includes("駕照") || name.includes("信用卡") || name.includes("錢包")) {
+    return ["anti_theft", "wallet", "backpack", "sling"];
+  }
+  if (name.includes("指甲剪") || name.includes("小剪刀") || name.includes("延長線")) {
+    return ["suitcase", "backpack", "sling"];
+  }
+  if (name.includes("體溫計") || name.includes("口罩") || name.includes("常備藥")) {
+    return ["backpack", "pouch", "sling", "anti_theft"];
+  }
+  const key = CATEGORY_KEY_BY_ID[categoryId] ?? "misc";
+  return personal
+    ? bagPrefsFromLegacy("personal", key)
+    : CATEGORY_BAG_PREFS[key] ?? bagPrefsFromLegacy("main", key);
+}
+
+function prefsForItem(name: string, categoryId: string, personal: boolean): BagPref[] {
+  return bagPrefsForItem(name, categoryId, personal);
+}
 
 export const CATALOG_KEY = "ezpakku-catalog-v1";
 
@@ -34,19 +71,30 @@ function defaultItems(): CatalogItemRow[] {
     手機充電器: "charger",
     行動電源: "powerbank",
     護照: "passport",
+    護照正本: "passport",
   };
   const affiliates = defaultAffiliates();
   return systemItems.map((item, index) => {
     const key = byKey[item.name] ?? null;
     const affiliate = key ? affiliates.find((entry) => entry.key === key) ?? null : null;
+    const personal =
+      item.name.includes("護照") ||
+      item.name.includes("行動電源") ||
+      item.name.includes("充電器") ||
+      item.name.includes("錢包") ||
+      item.name.includes("駕照") ||
+      item.name.includes("口罩") ||
+      item.name.includes("體溫計");
+    const bagPrefs = prefsForItem(item.name, item.categoryId, personal);
     return {
       id: item.id,
       categoryId: item.categoryId,
       name: item.name,
       description: item.description,
       templateKey: key,
-      defaultBag: item.name === "護照" || item.name === "行動電源" || item.name === "手機充電器" ? "personal" : "main",
-      tags: item.name === "行動電源" ? ["powerbank"] : [],
+      defaultBag: legacyBagFromPrefs(bagPrefs),
+      bagPrefs,
+      tags: item.name.includes("行動電源") ? ["powerbank"] : [],
       note: "",
       affiliateId: affiliate?.id ?? null,
       affiliateUrl: item.affiliateUrl,
@@ -62,26 +110,28 @@ function defaultPresets(): CatalogBagPreset[] {
       id: "preset-checked",
       key: "checked-standard",
       name: "托運標準組",
-      summary: "隨身包＋托運行李箱",
+      summary: "隨身包＋後揹包＋托運行李箱",
       luggagePlan: "checked",
       isActive: true,
       sortOrder: 0,
       bags: [
-        { id: "preset-checked-personal", name: "隨身包包", type: "backpack", color: BAG_COLORS[5], kind: "personal", sortOrder: 0 },
-        { id: "preset-checked-main", name: "托運行李箱", type: "suitcase", color: BAG_COLORS[0], kind: "checked", sortOrder: 1 },
+        { id: "preset-checked-sling", name: "隨身包", type: "sling", color: BAG_COLORS[3], kind: "personal", sortOrder: 0 },
+        { id: "preset-checked-backpack", name: "後揹包", type: "backpack", color: BAG_COLORS[5], kind: "other", sortOrder: 1 },
+        { id: "preset-checked-main", name: "托運行李箱", type: "suitcase", color: BAG_COLORS[0], kind: "checked", sortOrder: 2 },
       ],
     },
     {
       id: "preset-carry",
       key: "carryon7",
       name: "廉航登機組",
-      summary: "隨身包＋7kg 登機箱",
+      summary: "隨身包＋後揹包＋7kg 登機箱",
       luggagePlan: "carryon7",
       isActive: true,
       sortOrder: 1,
       bags: [
-        { id: "preset-carry-personal", name: "隨身包包", type: "backpack", color: BAG_COLORS[5], kind: "personal", sortOrder: 0 },
-        { id: "preset-carry-main", name: "登機箱", type: "suitcase", color: BAG_COLORS[0], kind: "carryon", sortOrder: 1 },
+        { id: "preset-carry-sling", name: "隨身包", type: "sling", color: BAG_COLORS[3], kind: "personal", sortOrder: 0 },
+        { id: "preset-carry-backpack", name: "後揹包", type: "backpack", color: BAG_COLORS[5], kind: "other", sortOrder: 1 },
+        { id: "preset-carry-main", name: "登機箱", type: "suitcase", color: BAG_COLORS[0], kind: "carryon", sortOrder: 2 },
       ],
     },
   ];
@@ -154,7 +204,12 @@ function readStored(): CatalogState {
     const parsed = JSON.parse(raw) as Partial<CatalogState>;
     const base = createDefaultCatalog();
     return {
-      items: Array.isArray(parsed.items) ? parsed.items : base.items,
+      items: Array.isArray(parsed.items)
+        ? parsed.items.map((item) => ({
+            ...item,
+            bagPrefs: Array.isArray(item.bagPrefs) ? item.bagPrefs : [],
+          }))
+        : base.items,
       affiliates: Array.isArray(parsed.affiliates) ? parsed.affiliates : base.affiliates,
       rules: Array.isArray(parsed.rules) ? parsed.rules : base.rules,
       presets: Array.isArray(parsed.presets) ? parsed.presets : base.presets,

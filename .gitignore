@@ -44,3 +44,7 @@ next-env.d.ts
 .cursor/*
 !.cursor/rules/
 !.cursor/rules/**
+
+# local asset tooling
+.tools-venv/
+.rembg-cache/

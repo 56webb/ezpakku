@@ -21,6 +21,7 @@ import {
   setSharePermission,
   togglePacked,
   travelDays,
+  updateItemNote,
   updateJourneyMeta,
   visibleJourneys,
 } from "@/lib/domain";
@@ -69,6 +70,7 @@ type StoreValue = {
   addItem: (input: Parameters<typeof addJourneyItem>[2]) => ReturnType<typeof addJourneyItem>;
   moveItem: (journeyItemId: string, bagId: string) => ReturnType<typeof moveJourneyItem>;
   toggleItem: (journeyItemId: string) => ReturnType<typeof togglePacked>;
+  updateItemNote: (journeyItemId: string, note: string) => ReturnType<typeof updateItemNote>;
   removeItem: (journeyItemId: string) => ReturnType<typeof removeJourneyItem>;
   share: (journeyId: string, permission: SharePermission) => ReturnType<typeof setSharePermission>;
   acceptShare: (token: string) => ReturnType<typeof openShare>;
@@ -375,6 +377,13 @@ function createStoreValue(state: AppState): StoreValue {
       if (!item) return { ok: false, reason: "找不到物品" };
       return applyJourneyMutation(user?.id ?? null, item.journeyId, (current, userId) =>
         togglePacked(current, userId, journeyItemId),
+      );
+    },
+    updateItemNote: (journeyItemId, note) => {
+      const item = state.journeyItems.find((entry) => entry.id === journeyItemId);
+      if (!item) return { ok: false, reason: "找不到物品" };
+      return applyJourneyMutation(user?.id ?? null, item.journeyId, (current, userId) =>
+        updateItemNote(current, userId, journeyItemId, note),
       );
     },
     removeItem: (journeyItemId) => {

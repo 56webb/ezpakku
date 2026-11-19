@@ -30,6 +30,7 @@ export const BAG_ICONS: Partial<Record<(typeof BAG_TYPES)[number]["id"], string>
   anti_theft: "/bags/anti_theft.png",
   pouch: "/bags/pouch.png",
   wallet: "/bags/wallet.png",
+  custom: "/bags/custom.png",
 };
 
 export const BAG_COLORS = [

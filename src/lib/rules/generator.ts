@@ -1,6 +1,7 @@
 import countriesData from "@/data/countries-rules.json";
 import itemsData from "@/data/items-rules.json";
 import safetyData from "@/data/safety-rules.json";
+import { bagPrefsFromLegacy, resolveBagIndex, type BagPref } from "@/lib/bag-prefs";
 import { BAG_COLORS } from "@/lib/constants";
 import { categoryIds } from "@/lib/seed";
 import type { BagType } from "@/lib/types";
@@ -37,6 +38,8 @@ type RuleItem = {
   category: string;
   qty?: QtySpec;
   bag?: "personal" | "main";
+  /** 包包志願序：先找得到的類型就放進去。 */
+  bagPrefs?: BagPref[];
   when?: {
     international?: boolean;
     climate?: ClimateChoice[];
@@ -60,6 +63,10 @@ const CATEGORY_MAP: Record<string, string> = {
   electronics: categoryIds.electronics,
   health: categoryIds.health,
   misc: categoryIds.misc,
+  skincare: categoryIds.skincare,
+  makeup: categoryIds.makeup,
+  outdoor: categoryIds.outdoor,
+  event: categoryIds.event,
   beach: categoryIds.misc,
   ski: categoryIds.misc,
   business: categoryIds.misc,
@@ -227,7 +234,7 @@ function matches(
 }
 
 export type GeneratedPacking = {
-  bags: { name: string; type: BagType; color: string; kind: "personal" | "carryon" | "checked" }[];
+  bags: { name: string; type: BagType; color: string; kind: "personal" | "carryon" | "checked" | "other" }[];
   items: {
     customName: string;
     categoryId: string;
@@ -269,23 +276,27 @@ export function generatePackingList(form: {
     days,
   };
 
-  const personal = {
-    name: "隨身包包",
-    type: "backpack" as BagType,
-    color: BAG_COLORS[5],
-    kind: "personal" as const,
-  };
-  const main =
+  const carry =
     form.luggage === "carryon7"
       ? { name: "登機箱", type: "suitcase" as BagType, color: BAG_COLORS[0], kind: "carryon" as const }
       : { name: "托運行李箱", type: "suitcase" as BagType, color: BAG_COLORS[0], kind: "checked" as const };
-  const bags = [personal, main];
+  // 預設三包，讓志願序（行李箱 > 後揹包 > 隨身包）有地方可選。
+  const bags = [
+    { name: "隨身包", type: "sling" as BagType, color: BAG_COLORS[3], kind: "personal" as const },
+    { name: "後揹包", type: "backpack" as BagType, color: BAG_COLORS[5], kind: "other" as const },
+    carry,
+  ];
 
   const items: GeneratedPacking["items"] = [];
   for (const [index, tpl] of (itemsData.items as RuleItem[]).entries()) {
     if (!matches(tpl.when, ctx)) continue;
     const forbid = (tpl.tags ?? []).some((tag) => SAFETY_TAGS[tag]?.forbidChecked);
-    const bagIndex = tpl.bag === "personal" || forbid ? 0 : 1;
+    const prefs: BagPref[] = forbid
+      ? ["backpack", "sling", "anti_theft", "pouch", "wallet"]
+      : tpl.bagPrefs?.length
+        ? tpl.bagPrefs
+        : bagPrefsFromLegacy(tpl.bag, tpl.category);
+    const bagIndex = resolveBagIndex(prefs, bags, forbid ? "personal" : tpl.bag ?? "main");
     const tags = (tpl.tags ?? []).filter((tag) => !(SAFETY_TAGS[tag]?.internationalOnly && !ctx.international));
     let note = tpl.note?.["zh-tw"] ?? "";
     if (tpl.id === "adapter" && country) {

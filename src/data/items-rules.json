@@ -1,5 +1,5 @@
 {
- "_comment": "預設物品範本。when = 出現條件（全部符合才加入）：international 出國與否、climate 氣候（hot 熱≥25°C／warm 溫暖 18–25／cool 涼 10–18／cold 冷 <10）、types 旅行類型（符合其中一個即可）、luggage 行李方案、needsAdapter 需要轉接頭、highVoltage 當地電壓 ≥200V、minDays 最少天數。qty 可以是數字，或 {perDay 每天幾件, extra 額外加幾件, min, max}。bag = personal（隨身包）或 main（主行李）。buyKey = 之後放導購連結用的代號（目前不顯示）。",
+ "_comment": "預設物品範本。when = 出現條件（全部符合才加入）：international 出國與否、climate 氣候（hot 熱≥25°C／warm 溫暖 18–25／cool 涼 10–18／cold 冷 <10）、types 旅行類型（符合其中一個即可）、luggage 行李方案、needsAdapter 需要轉接頭、highVoltage 當地電壓 ≥200V、minDays 最少天數。qty 可以是數字，或 {perDay 每天幾件, extra 額外加幾件, min, max}。bag = personal／main（舊欄位）。bagPrefs = 包包志願序（suitcase／backpack／sling／anti_theft／pouch／wallet／personal／main），會在使用者現有包包裡依序匹配。buyKey = 導購代號。",
  "categories": [
   {
    "id": "docs",
@@ -517,7 +517,8 @@
    },
    "category": "electronics",
    "qty": 1,
-   "bag": "personal"
+   "bag": "personal",
+   "bagPrefs": ["backpack", "anti_theft", "sling", "suitcase"]
   },
   {
    "id": "powerbank",
@@ -527,6 +528,7 @@
    "category": "electronics",
    "qty": 1,
    "bag": "personal",
+   "bagPrefs": ["backpack", "anti_theft", "sling"],
    "tags": [
     "powerbank"
    ],
@@ -590,7 +592,8 @@
    },
    "category": "health",
    "qty": 1,
-   "bag": "personal"
+   "bag": "personal",
+   "bagPrefs": ["backpack", "pouch", "sling", "anti_theft"]
   },
   {
    "id": "rx",
@@ -1040,6 +1043,184 @@
     "types": [
      "kids"
     ]
+   }
+  },
+  {
+   "id": "extension-cord",
+   "name": {
+    "zh-tw": "延長線"
+   },
+   "category": "electronics",
+   "qty": 1,
+   "bag": "main",
+   "bagPrefs": ["suitcase", "backpack", "sling"],
+   "note": {
+    "zh-tw": "飯店插座不夠時很有用，可多帶 1 條"
+   }
+  },
+  {
+   "id": "thermometer",
+   "name": {
+    "zh-tw": "體溫計"
+   },
+   "category": "health",
+   "qty": 1,
+   "bag": "personal",
+   "bagPrefs": ["backpack", "pouch", "sling", "suitcase"]
+  },
+  {
+   "id": "quick-dry-towel",
+   "name": {
+    "zh-tw": "快乾浴巾"
+   },
+   "category": "clothes",
+   "qty": 1,
+   "bag": "main",
+   "bagPrefs": ["suitcase", "backpack", "sling"],
+   "note": {
+    "zh-tw": "建議帶 1–2 條"
+   }
+  },
+  {
+   "id": "makeup-remover",
+   "name": {
+    "zh-tw": "卸妝用品"
+   },
+   "category": "toiletries",
+   "qty": 1,
+   "bag": "main",
+   "bagPrefs": ["pouch", "suitcase", "backpack"],
+   "tags": ["liquids"]
+  },
+  {
+   "id": "bath-scrub",
+   "name": {
+    "zh-tw": "沐浴巾"
+   },
+   "category": "toiletries",
+   "qty": 1,
+   "bag": "main",
+   "bagPrefs": ["pouch", "suitcase", "backpack"]
+  },
+  {
+   "id": "pajamas",
+   "name": {
+    "zh-tw": "睡衣"
+   },
+   "category": "clothes",
+   "qty": 1,
+   "bag": "main",
+   "bagPrefs": ["suitcase", "backpack", "sling"]
+  },
+  {
+   "id": "daily-clothes",
+   "name": {
+    "zh-tw": "平常衣物"
+   },
+   "category": "clothes",
+   "qty": {
+    "perDay": 1,
+    "extra": 1,
+    "min": 2,
+    "max": 7
+   },
+   "bag": "main",
+   "bagPrefs": ["suitcase", "backpack", "sling"]
+  },
+  {
+   "id": "sandals",
+   "name": {
+    "zh-tw": "涼鞋"
+   },
+   "category": "clothes",
+   "qty": 1,
+   "bag": "main",
+   "bagPrefs": ["suitcase", "backpack", "sling"]
+  },
+  {
+   "id": "nail-kit",
+   "name": {
+    "zh-tw": "指甲剪、小剪刀"
+   },
+   "category": "misc",
+   "qty": 1,
+   "bag": "main",
+   "bagPrefs": ["suitcase", "backpack", "sling"],
+   "note": {
+    "zh-tw": "尖銳物建議放托運／主行李"
+   }
+  },
+  {
+   "id": "passport-copy",
+   "name": {
+    "zh-tw": "護照影本＋電子檔"
+   },
+   "category": "docs",
+   "qty": 1,
+   "bag": "personal",
+   "bagPrefs": ["backpack", "anti_theft", "sling"],
+   "when": {
+    "international": true
+   }
+  },
+  {
+   "id": "driver-license",
+   "name": {
+    "zh-tw": "駕照／國際駕照"
+   },
+   "category": "docs",
+   "qty": 1,
+   "bag": "personal",
+   "bagPrefs": ["anti_theft", "wallet", "backpack", "sling"],
+   "when": {
+    "international": true
+   }
+  },
+  {
+   "id": "contacts-kit",
+   "name": {
+    "zh-tw": "隱形眼鏡組（片、盒、藥水）"
+   },
+   "category": "health",
+   "qty": 1,
+   "bag": "main",
+   "bagPrefs": ["pouch", "suitcase", "backpack"],
+   "tags": ["liquids"]
+  },
+  {
+   "id": "wet-wipes",
+   "name": {
+    "zh-tw": "濕紙巾／面紙"
+   },
+   "category": "toiletries",
+   "qty": 1,
+   "bag": "personal",
+   "bagPrefs": ["backpack", "sling", "pouch", "suitcase"]
+  },
+  {
+   "id": "laundry-bag",
+   "name": {
+    "zh-tw": "洗衣袋／汙衣袋"
+   },
+   "category": "misc",
+   "qty": 1,
+   "bag": "main",
+   "bagPrefs": ["suitcase", "backpack"],
+   "when": {
+    "minDays": 3
+   }
+  },
+  {
+   "id": "luggage-scale",
+   "name": {
+    "zh-tw": "行李電子秤"
+   },
+   "category": "misc",
+   "qty": 1,
+   "bag": "main",
+   "bagPrefs": ["suitcase", "backpack"],
+   "when": {
+    "luggage": ["checked"]
    }
   }
  ]
